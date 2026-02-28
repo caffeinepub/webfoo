@@ -2,13 +2,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { usePlaceOrder } from "@/hooks/useQueries";
 import { formatPrice } from "@/utils/categoryColors";
 import { useNavigate } from "@tanstack/react-router";
-import { Check, CreditCard, Loader2, MapPin, ShoppingBag } from "lucide-react";
+import {
+  Check,
+  CreditCard,
+  Loader2,
+  Lock,
+  MapPin,
+  ShoppingBag,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 const SHIPPING_CENTS = BigInt(499);
@@ -43,8 +51,16 @@ function formatExpiry(val: string): string {
 
 export function CheckoutPage() {
   const navigate = useNavigate();
+  const { currentUser, isInitializing } = useAuth();
   const { items, subtotal, clearCart } = useCart();
   const placeOrder = usePlaceOrder();
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isInitializing && !currentUser) {
+      navigate({ to: "/login", search: { redirect: "/checkout" } });
+    }
+  }, [currentUser, isInitializing, navigate]);
 
   const [step, setStep] = useState<Step>("address");
   const [address, setAddress] = useState<AddressForm>({
@@ -102,7 +118,7 @@ export function CheckoutPage() {
 
   if (items.length === 0 && !placeOrder.isPending) {
     return (
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-16 text-center min-h-screen">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-16 text-center min-h-screen">
         <div className="text-5xl mb-4">🛒</div>
         <h2 className="font-display font-bold text-2xl mb-4">
           Your cart is empty
@@ -137,10 +153,10 @@ export function CheckoutPage() {
       <div
         className="border-b border-border"
         style={{
-          background: "linear-gradient(135deg, #0c1a24 0%, #0d2030 100%)",
+          background: "linear-gradient(135deg, #0a1520 0%, #0c2233 100%)",
         }}
       >
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 flex items-center gap-4">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 flex items-center gap-4">
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{ backgroundColor: "rgba(6,182,212,0.2)" }}
@@ -150,20 +166,28 @@ export function CheckoutPage() {
           <h1 className="font-display font-extrabold text-2xl text-white">
             Checkout
           </h1>
+          {currentUser && (
+            <span className="ml-auto text-sm text-white/50 hidden sm:block">
+              Ordering as{" "}
+              <span className="text-white/80 font-medium">
+                {currentUser.displayName}
+              </span>
+            </span>
+          )}
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         {/* Step indicator */}
-        <div className="flex items-center gap-2 mb-10">
+        <div className="flex items-center gap-3 mb-10">
           {steps.map((s, idx) => {
             const isActive = step === s.key;
             const isDone = s.key === "address" && step === "payment";
             return (
-              <div key={s.key} className="flex items-center gap-2">
+              <div key={s.key} className="flex items-center gap-3">
                 {idx > 0 && (
                   <div
-                    className="h-px w-8 sm:w-16 transition-colors duration-300"
+                    className="h-0.5 w-12 sm:w-20 rounded-full transition-colors duration-300"
                     style={{
                       backgroundColor: isDone ? "#16A34A" : "#E5E7EB",
                     }}
@@ -171,7 +195,7 @@ export function CheckoutPage() {
                 )}
                 <div className="flex items-center gap-2">
                   <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300"
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 shadow-sm"
                     style={{
                       backgroundColor: isDone
                         ? "#16A34A"
@@ -184,7 +208,7 @@ export function CheckoutPage() {
                     {isDone ? <Check className="w-4 h-4" /> : idx + 1}
                   </div>
                   <span
-                    className="text-sm font-medium hidden sm:block transition-colors duration-300"
+                    className="text-sm font-semibold hidden sm:block transition-colors duration-300"
                     style={{
                       color: isActive
                         ? "#0891B2"
@@ -201,7 +225,7 @@ export function CheckoutPage() {
           })}
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Forms */}
           <div className="lg:col-span-2">
             <AnimatePresence mode="wait">
@@ -217,7 +241,7 @@ export function CheckoutPage() {
                 >
                   <div className="flex items-center gap-3 mb-6">
                     <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center"
+                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                       style={{ backgroundColor: "#ECFEFF" }}
                     >
                       <MapPin
@@ -225,16 +249,21 @@ export function CheckoutPage() {
                         style={{ color: "#06B6D4" }}
                       />
                     </div>
-                    <h2 className="font-display font-bold text-xl">
-                      Delivery Address
-                    </h2>
+                    <div>
+                      <h2 className="font-display font-bold text-xl">
+                        Delivery Address
+                      </h2>
+                      <p className="text-xs text-muted-foreground">
+                        Where should we deliver your order?
+                      </p>
+                    </div>
                   </div>
 
                   <div className="space-y-4">
                     <div>
                       <Label
                         htmlFor="fullName"
-                        className="mb-1.5 block text-sm font-medium"
+                        className="mb-1.5 block text-sm font-semibold"
                       >
                         Full Name *
                       </Label>
@@ -256,7 +285,7 @@ export function CheckoutPage() {
                     <div>
                       <Label
                         htmlFor="street"
-                        className="mb-1.5 block text-sm font-medium"
+                        className="mb-1.5 block text-sm font-semibold"
                       >
                         Street Address *
                       </Label>
@@ -276,7 +305,7 @@ export function CheckoutPage() {
                       <div>
                         <Label
                           htmlFor="city"
-                          className="mb-1.5 block text-sm font-medium"
+                          className="mb-1.5 block text-sm font-semibold"
                         >
                           City *
                         </Label>
@@ -295,7 +324,7 @@ export function CheckoutPage() {
                       <div>
                         <Label
                           htmlFor="zip"
-                          className="mb-1.5 block text-sm font-medium"
+                          className="mb-1.5 block text-sm font-semibold"
                         >
                           ZIP Code *
                         </Label>
@@ -319,7 +348,7 @@ export function CheckoutPage() {
                     type="submit"
                     size="lg"
                     disabled={!addressValid}
-                    className="w-full mt-6 text-white rounded-xl font-bold"
+                    className="w-full mt-6 text-white rounded-xl font-bold shadow-md hover:opacity-90 transition-all"
                     style={{ backgroundColor: "#0891B2" }}
                   >
                     Continue to Payment →
@@ -337,7 +366,7 @@ export function CheckoutPage() {
                 >
                   <div className="flex items-center gap-3 mb-6">
                     <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center"
+                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                       style={{ backgroundColor: "#ECFEFF" }}
                     >
                       <CreditCard
@@ -345,19 +374,42 @@ export function CheckoutPage() {
                         style={{ color: "#06B6D4" }}
                       />
                     </div>
-                    <h2 className="font-display font-bold text-xl">
-                      Payment Details
-                    </h2>
-                    <span className="ml-auto text-xs text-muted-foreground bg-secondary px-2.5 py-1 rounded-full">
-                      🔒 Simulated
+                    <div>
+                      <h2 className="font-display font-bold text-xl">
+                        Payment Details
+                      </h2>
+                      <p className="text-xs text-muted-foreground">
+                        Simulated payment — no real charges
+                      </p>
+                    </div>
+                    <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary px-2.5 py-1 rounded-full">
+                      <Lock className="w-3 h-3" />
+                      Secure
                     </span>
+                  </div>
+
+                  {/* Delivery address recap */}
+                  <div
+                    className="rounded-xl p-3 mb-5 text-sm"
+                    style={{
+                      backgroundColor: "#F0FDFA",
+                      border: "1px solid #CCFBF1",
+                    }}
+                  >
+                    <p className="text-xs font-bold uppercase tracking-wide text-teal-600 mb-1">
+                      Delivering to
+                    </p>
+                    <p className="text-foreground font-medium">
+                      {address.fullName}, {address.street}, {address.city}{" "}
+                      {address.zip}
+                    </p>
                   </div>
 
                   <div className="space-y-4">
                     <div>
                       <Label
                         htmlFor="cardNumber"
-                        className="mb-1.5 block text-sm font-medium"
+                        className="mb-1.5 block text-sm font-semibold"
                       >
                         Card Number *
                       </Label>
@@ -381,7 +433,7 @@ export function CheckoutPage() {
                       <div>
                         <Label
                           htmlFor="expiry"
-                          className="mb-1.5 block text-sm font-medium"
+                          className="mb-1.5 block text-sm font-semibold"
                         >
                           Expiry Date *
                         </Label>
@@ -404,7 +456,7 @@ export function CheckoutPage() {
                       <div>
                         <Label
                           htmlFor="cvv"
-                          className="mb-1.5 block text-sm font-medium"
+                          className="mb-1.5 block text-sm font-semibold"
                         >
                           CVV *
                         </Label>
@@ -444,7 +496,7 @@ export function CheckoutPage() {
                       type="submit"
                       size="lg"
                       disabled={!paymentValid || placeOrder.isPending}
-                      className="flex-1 text-white rounded-xl font-bold"
+                      className="flex-1 text-white rounded-xl font-bold shadow-md hover:opacity-90 transition-all"
                       style={{ backgroundColor: "#0891B2" }}
                     >
                       {placeOrder.isPending ? (
@@ -502,6 +554,11 @@ export function CheckoutPage() {
                   <span style={{ color: "#0891B2" }}>{formatPrice(total)}</span>
                 </div>
               </div>
+
+              <p className="text-xs text-muted-foreground text-center mt-4 flex items-center justify-center gap-1">
+                <Lock className="w-3 h-3" />
+                Simulated secure checkout
+              </p>
             </div>
           </div>
         </div>

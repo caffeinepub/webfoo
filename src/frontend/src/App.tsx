@@ -1,12 +1,15 @@
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
 import { CartPage } from "@/pages/CartPage";
 import { CheckoutPage } from "@/pages/CheckoutPage";
 import { HomePage } from "@/pages/HomePage";
+import { LoginPage } from "@/pages/LoginPage";
 import { OrderConfirmedPage } from "@/pages/OrderConfirmedPage";
 import { ProductDetailPage } from "@/pages/ProductDetailPage";
+import { RegisterPage } from "@/pages/RegisterPage";
 import { StorePage } from "@/pages/StorePage";
 import {
   Outlet,
@@ -19,16 +22,18 @@ import {
 // Root route with layout
 const rootRoute = createRootRoute({
   component: () => (
-    <CartProvider>
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <div className="flex-1">
-          <Outlet />
+    <AuthProvider>
+      <CartProvider>
+        <div className="min-h-screen flex flex-col">
+          <Header />
+          <div className="flex-1">
+            <Outlet />
+          </div>
+          <Footer />
         </div>
-        <Footer />
-      </div>
-      <Toaster richColors position="top-right" />
-    </CartProvider>
+        <Toaster richColors position="top-right" />
+      </CartProvider>
+    </AuthProvider>
   ),
 });
 
@@ -72,6 +77,21 @@ const orderConfirmedRoute = createRoute({
   component: OrderConfirmedPage,
 });
 
+const loginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/login",
+  validateSearch: (search: Record<string, unknown>) => ({
+    redirect: typeof search.redirect === "string" ? search.redirect : undefined,
+  }),
+  component: LoginPage,
+});
+
+const registerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/register",
+  component: RegisterPage,
+});
+
 // Router
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -80,6 +100,8 @@ const routeTree = rootRoute.addChildren([
   cartRoute,
   checkoutRoute,
   orderConfirmedRoute,
+  loginRoute,
+  registerRoute,
 ]);
 
 const router = createRouter({ routeTree });

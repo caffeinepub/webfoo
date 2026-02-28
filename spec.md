@@ -1,44 +1,37 @@
 # WebFoo Mart
 
 ## Current State
-A full-stack e-commerce marketplace on the Internet Computer. The existing app has:
-- Header with circular logo (WebFoo Mart brand), cart icon, dark background (#0f0f0f)
-- Homepage with hero section, centered search bar, 2-column store grid (12 stores total: 6 from backend, 6 frontend-only)
-- Store page with product grid per store
-- Product detail page with quantity selector, Buy Now / Add to Cart buttons, reviews section
-- Cart page with item management and order summary
-- Checkout page with address + payment (simulated) 2-step flow
-- Order confirmed page
-- Guest-only (no authentication)
-- Cyan/black theme (#06B6D4, #0891B2) matching the uploaded logo
-- Category-specific color styles and emojis per store type
+
+The app is a full-stack e-commerce platform with:
+- **Backend (Motoko)**: Stores, products, reviews, orders, authorization
+- **Frontend (React/TypeScript)**: 8 pages (Home, Store, ProductDetail, Cart, Checkout, OrderConfirmed, Login, Register)
+- **Data**: 12 stores (6 backend, 6 frontend-only), 48+ products, reviews
+- **Auth**: Login/Register with localStorage-based sessions, AuthContext
+- **Cart**: CartContext with subtotal calculation
+- **Theme**: Cyan/dark (#0f0f0f, #06B6D4) matching uploaded logo
+- **Logo**: Circular image at `/assets/uploads/cropped_circle_image-1.png` in header
 
 ## Requested Changes (Diff)
 
 ### Add
-- Nothing net-new; this is a clean rebuild
+- None new features; this is a comprehensive rebuild/refresh ensuring all user-specified features are present and polished
 
 ### Modify
-- Rebuild all pages from scratch with improved UI quality while keeping all existing functionality
-- Homepage: more prominent centered search bar (full-width, visually dominant), 2-column store grid (strict 2-column on all screen sizes, 3-col on large screens)
-- Store directory must include all required categories: General Store, Flower Store, Chocolate Store, Grocery Store, Vegetable Store (plus existing extras)
-- Product detail page: clearer photo display, description, price, quantity selector, reviews
-- Buy Now button: goes directly to checkout (address entry then payment)
-- Add to Cart: adds item to cart; cart page shows items, total, proceed to purchase
-- Keep existing circular logo in header
-- Keep cyan/black color theme
+- **HomePage**: Ensure search bar is prominent and centered, clearly distinct from the hero section; store grid is exactly 2 columns on mobile/tablet, with all 12 stores visible and categories clearly labeled (General Store, Flower Store, Chocolate Store, Grocery Store, Vegetable Store among them)
+- **StorePage**: Improve product grid layout -- ensure a clean organized grid of all store items with clear product cards showing name, price, and image placeholder
+- **ProductDetailPage**: Ensure photo placeholder area is prominent, description, price, quantity selector (increment/decrement), and reviews are clearly visible; "Buy Now" and "Add to Cart" buttons must be visually distinct from each other (different colors/styles)
+- **CheckoutPage**: "Buy Now" must immediately trigger checkout flow starting with delivery address form, then payment gateway step; ensure the 2-step flow (address → payment) is clearly indicated
+- **CartPage**: Ensure items list, quantity update controls, calculated total, and "Proceed to Checkout" button are all clearly visible
+- **Login/Register pages**: Keep existing functionality, style consistent with theme
 
 ### Remove
-- Nothing
+- Nothing removed; all existing features preserved
 
 ## Implementation Plan
-1. Regenerate Motoko backend with all required store categories seeded (General Store, Flower Store, Chocolate Store, Grocery Store, Vegetable Store + Bakery)
-2. Rebuild frontend pages:
-   - HomePage: prominent centered search bar below header, 2-column store grid
-   - StorePage: organized product grid
-   - ProductDetailPage: product image area, description, price, quantity, Buy Now + Add to Cart
-   - CartPage: item list, total, proceed to checkout
-   - CheckoutPage: address step → payment step (simulated)
-   - OrderConfirmedPage: success message
-3. Keep Header (circular logo, cart icon), Footer, CartContext, and utility files
-4. Ensure all 12 stores appear (6 backend + 6 frontend-only extra stores)
+
+1. **HomePage**: Force 2-column grid (`grid-cols-2`) at all breakpoints up to lg (where it becomes 3-col optional), make search bar section more prominent with a taller/more spacious layout, ensure all 12 stores render with their category badges
+2. **StorePage**: Ensure product cards show emoji/color image, name, price, and a clear CTA or link to product detail
+3. **ProductDetailPage**: Ensure "Buy Now" button is visually distinct (solid, bold) and "Add to Cart" is a secondary style (outlined), quantity selector is clearly visible, reviews section is fully rendered
+4. **CartPage**: Verify item rows, quantity controls, subtotal/shipping/total breakdown, and checkout button all work correctly
+5. **CheckoutPage**: Verify "Buy Now" nav goes directly to checkout (bypassing cart), 2-step address+payment flow is clear
+6. **Overall**: Consistent cyan/dark theme, circular logo in header, login/logout in header

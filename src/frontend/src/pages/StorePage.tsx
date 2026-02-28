@@ -55,31 +55,39 @@ export function StorePage() {
 
   return (
     <main className="min-h-screen">
-      {/* Store header */}
+      {/* Store banner header */}
       {isLoading ? (
         <div className="h-44 bg-muted animate-pulse" />
       ) : store && style ? (
         <div
           className="relative overflow-hidden"
           style={{
-            background: `linear-gradient(135deg, ${style.bg} 0%, ${style.bg}cc 50%, ${style.lightBg} 100%)`,
+            background: `linear-gradient(145deg, ${style.bg} 0%, ${style.bg}cc 55%, ${style.lightBg} 100%)`,
           }}
         >
-          {/* Background texture */}
+          {/* Background texture orbs */}
           <div
-            className="absolute -top-12 -right-12 w-56 h-56 rounded-full opacity-10"
+            className="absolute -top-12 -right-12 w-64 h-64 rounded-full opacity-10"
             style={{ backgroundColor: "white" }}
           />
           <div
-            className="absolute -bottom-16 -left-8 w-44 h-44 rounded-full opacity-10"
+            className="absolute -bottom-16 -left-8 w-48 h-48 rounded-full opacity-08"
             style={{ backgroundColor: "white" }}
+          />
+          {/* Inner glow */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(ellipse at 20% 50%, rgba(255,255,255,0.15) 0%, transparent 50%)",
+            }}
           />
 
-          <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+          <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
             <Link
               to="/"
-              className="inline-flex items-center gap-1.5 text-sm font-medium mb-6 transition-opacity hover:opacity-75"
-              style={{ color: "rgba(255,255,255,0.85)" }}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold mb-6 transition-opacity hover:opacity-75"
+              style={{ color: "rgba(255,255,255,0.9)" }}
             >
               <ArrowLeft className="w-4 h-4" />
               All Stores
@@ -88,15 +96,16 @@ export function StorePage() {
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
               className="flex items-start gap-5"
             >
               {/* Store icon */}
               <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0 shadow-md"
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl flex-shrink-0 shadow-lg"
                 style={{
-                  backgroundColor: "rgba(255,255,255,0.2)",
+                  backgroundColor: "rgba(255,255,255,0.22)",
                   backdropFilter: "blur(8px)",
+                  border: "1px solid rgba(255,255,255,0.3)",
                 }}
               >
                 {style.emoji}
@@ -105,9 +114,9 @@ export function StorePage() {
               <div>
                 {/* Category badge */}
                 <span
-                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold mb-2"
+                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold mb-2 uppercase tracking-wide"
                   style={{
-                    backgroundColor: "rgba(255,255,255,0.25)",
+                    backgroundColor: "rgba(255,255,255,0.28)",
                     color: "white",
                   }}
                 >
@@ -115,14 +124,14 @@ export function StorePage() {
                 </span>
 
                 <h1
-                  className="font-display font-extrabold text-3xl sm:text-4xl leading-tight mb-1"
+                  className="font-display font-extrabold text-2xl sm:text-3xl lg:text-4xl leading-tight mb-2"
                   style={{ color: "white" }}
                 >
                   {store.name}
                 </h1>
                 <p
-                  className="max-w-xl text-sm leading-relaxed"
-                  style={{ color: "rgba(255,255,255,0.75)" }}
+                  className="max-w-lg text-sm leading-relaxed"
+                  style={{ color: "rgba(255,255,255,0.78)" }}
                 >
                   {store.description}
                 </p>
@@ -133,7 +142,7 @@ export function StorePage() {
       ) : null}
 
       {/* Products grid */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         {isLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5">
             {["a", "b", "c", "d", "e", "f"].map((k) => (
@@ -168,8 +177,9 @@ export function StorePage() {
         ) : (
           <>
             <div className="flex items-center gap-2 mb-6">
-              <p className="text-sm text-muted-foreground">
-                {products.length} product{products.length !== 1 ? "s" : ""}
+              <p className="text-sm font-medium text-muted-foreground">
+                {products.length} product{products.length !== 1 ? "s" : ""}{" "}
+                available
               </p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5">

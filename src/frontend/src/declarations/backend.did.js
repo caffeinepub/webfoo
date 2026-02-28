@@ -8,6 +8,11 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const UserRole = IDL.Variant({
+  'admin' : IDL.Null,
+  'user' : IDL.Null,
+  'guest' : IDL.Null,
+});
 export const Store = IDL.Record({
   'id' : IDL.Nat,
   'name' : IDL.Text,
@@ -30,11 +35,15 @@ export const Review = IDL.Record({
 
 export const idlService = IDL.Service({
   '_clearStoresForTesting' : IDL.Func([], [], []),
+  '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+  'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'getAllStores' : IDL.Func([], [IDL.Vec(Store)], ['query']),
+  'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getProduct' : IDL.Func([IDL.Nat], [IDL.Opt(Product)], ['query']),
   'getProductsByStore' : IDL.Func([IDL.Nat], [IDL.Vec(Product)], ['query']),
   'getReviews' : IDL.Func([IDL.Nat], [IDL.Vec(Review)], ['query']),
   'initialize' : IDL.Func([], [], []),
+  'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'placeOrder' : IDL.Func(
       [IDL.Vec(IDL.Nat), IDL.Vec(IDL.Nat), IDL.Text],
       [IDL.Text],
@@ -45,6 +54,11 @@ export const idlService = IDL.Service({
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const UserRole = IDL.Variant({
+    'admin' : IDL.Null,
+    'user' : IDL.Null,
+    'guest' : IDL.Null,
+  });
   const Store = IDL.Record({
     'id' : IDL.Nat,
     'name' : IDL.Text,
@@ -67,11 +81,15 @@ export const idlFactory = ({ IDL }) => {
   
   return IDL.Service({
     '_clearStoresForTesting' : IDL.Func([], [], []),
+    '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+    'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'getAllStores' : IDL.Func([], [IDL.Vec(Store)], ['query']),
+    'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getProduct' : IDL.Func([IDL.Nat], [IDL.Opt(Product)], ['query']),
     'getProductsByStore' : IDL.Func([IDL.Nat], [IDL.Vec(Product)], ['query']),
     'getReviews' : IDL.Func([IDL.Nat], [IDL.Vec(Review)], ['query']),
     'initialize' : IDL.Func([], [], []),
+    'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'placeOrder' : IDL.Func(
         [IDL.Vec(IDL.Nat), IDL.Vec(IDL.Nat), IDL.Text],
         [IDL.Text],

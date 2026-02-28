@@ -29,13 +29,20 @@ export interface Store {
   'description' : string,
   'category' : string,
 }
+export type UserRole = { 'admin' : null } |
+  { 'user' : null } |
+  { 'guest' : null };
 export interface _SERVICE {
   '_clearStoresForTesting' : ActorMethod<[], undefined>,
+  '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'getAllStores' : ActorMethod<[], Array<Store>>,
+  'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getProduct' : ActorMethod<[bigint], [] | [Product]>,
   'getProductsByStore' : ActorMethod<[bigint], Array<Product>>,
   'getReviews' : ActorMethod<[bigint], Array<Review>>,
   'initialize' : ActorMethod<[], undefined>,
+  'isCallerAdmin' : ActorMethod<[], boolean>,
   'placeOrder' : ActorMethod<[Array<bigint>, Array<bigint>, string], string>,
 }
 export declare const idlService: IDL.ServiceClass;
