@@ -8,7 +8,7 @@ import { motion } from "motion/react";
 import { toast } from "sonner";
 
 interface ProductCardProps {
-  product: Product;
+  product: Product & { outOfStock?: boolean };
   category: string;
   index?: number;
 }
@@ -21,9 +21,12 @@ export function ProductCard({
   const style = getCategoryStyle(category);
   const { addItem } = useCart();
 
+  const isOutOfStock = !!(product as any).outOfStock;
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isOutOfStock) return;
     addItem({
       productId: product.id,
       productName: product.name,
@@ -54,17 +57,36 @@ export function ProductCard({
         {/* Product image zone */}
         <div
           className="h-36 sm:h-44 flex items-center justify-center relative overflow-hidden"
-          style={{
-            background: `linear-gradient(145deg, ${style.bg} 0%, ${style.bg}cc 60%, ${style.lightBg} 100%)`,
-          }}
+          style={
+            !(product as any).imageUrl
+              ? {
+                  background: `linear-gradient(145deg, ${style.bg} 0%, ${style.bg}cc 60%, ${style.lightBg} 100%)`,
+                }
+              : undefined
+          }
         >
-          <span className="text-5xl sm:text-6xl drop-shadow-md select-none relative z-10">
-            {style.emoji}
-          </span>
+          {(product as any).imageUrl ? (
+            <img
+              src={(product as any).imageUrl}
+              alt={product.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <>
+              <span className="text-5xl sm:text-6xl drop-shadow-md select-none relative z-10">
+                {style.emoji}
+              </span>
+              {/* Decorative orb */}
+              <div
+                className="absolute -top-5 -right-5 w-20 h-20 rounded-full opacity-20"
+                style={{ backgroundColor: "white" }}
+              />
+            </>
+          )}
 
           {/* Price tag */}
           <div
-            className="absolute bottom-2.5 left-2.5 px-2.5 py-1 rounded-lg text-xs font-bold text-white shadow-md"
+            className="absolute bottom-2.5 left-2.5 px-2.5 py-1 rounded-lg text-xs font-bold text-white shadow-md z-10"
             style={{
               backgroundColor: "rgba(0,0,0,0.45)",
               backdropFilter: "blur(8px)",
@@ -73,8 +95,20 @@ export function ProductCard({
             {formatPrice(product.price)}
           </div>
 
+          {/* Out of stock overlay */}
+          {isOutOfStock && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-20">
+              <span
+                className="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide"
+                style={{ backgroundColor: "#FEE2E2", color: "#B91C1C" }}
+              >
+                Out of Stock
+              </span>
+            </div>
+          )}
+
           {/* View detail overlay on hover */}
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
             <div
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-white text-xs font-bold"
               style={{
@@ -86,12 +120,6 @@ export function ProductCard({
               View Details
             </div>
           </div>
-
-          {/* Decorative orb */}
-          <div
-            className="absolute -top-5 -right-5 w-20 h-20 rounded-full opacity-20"
-            style={{ backgroundColor: "white" }}
-          />
         </div>
 
         <div className="p-3 sm:p-4">
@@ -104,11 +132,12 @@ export function ProductCard({
           <Button
             size="sm"
             onClick={handleAddToCart}
-            className="w-full text-white rounded-xl text-xs font-semibold transition-all hover:opacity-90 active:scale-95"
-            style={{ backgroundColor: style.bg }}
+            disabled={isOutOfStock}
+            className="w-full text-white rounded-xl text-xs font-semibold transition-all hover:opacity-90 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ backgroundColor: isOutOfStock ? "#9CA3AF" : style.bg }}
           >
             <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
-            Add to Cart
+            {isOutOfStock ? "Out of Stock" : "Add to Cart"}
           </Button>
         </div>
       </Link>

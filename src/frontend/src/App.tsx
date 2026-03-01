@@ -3,10 +3,13 @@ import { Header } from "@/components/Header";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
+import { AccountPage } from "@/pages/AccountPage";
+import { AdminPage } from "@/pages/AdminPage";
 import { CartPage } from "@/pages/CartPage";
 import { CheckoutPage } from "@/pages/CheckoutPage";
 import { HomePage } from "@/pages/HomePage";
 import { LoginPage } from "@/pages/LoginPage";
+import { MyOrdersPage } from "@/pages/MyOrdersPage";
 import { OrderConfirmedPage } from "@/pages/OrderConfirmedPage";
 import { ProductDetailPage } from "@/pages/ProductDetailPage";
 import { RegisterPage } from "@/pages/RegisterPage";
@@ -92,6 +95,24 @@ const registerRoute = createRoute({
   component: RegisterPage,
 });
 
+const myOrdersRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/my-orders",
+  component: MyOrdersPage,
+});
+
+const adminRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin",
+  component: AdminPage,
+});
+
+const accountRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/account",
+  component: AccountPage,
+});
+
 // Router
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -102,6 +123,9 @@ const routeTree = rootRoute.addChildren([
   orderConfirmedRoute,
   loginRoute,
   registerRoute,
+  myOrdersRoute,
+  adminRoute,
+  accountRoute,
 ]);
 
 const router = createRouter({ routeTree });

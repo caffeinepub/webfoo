@@ -1,14 +1,28 @@
 import { StoreCard } from "@/components/StoreCard";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useActor } from "@/hooks/useActor";
 import { useGetAllStores } from "@/hooks/useQueries";
 import { Search, Store } from "lucide-react";
 import { motion } from "motion/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export function HomePage() {
   const [search, setSearch] = useState("");
   const { data: stores, isLoading } = useGetAllStores();
+  const { actor, isFetching } = useActor();
+  const initialized = useRef(false);
+
+  // Initialize backend data (seed stores/products) on first load
+  useEffect(() => {
+    if (actor && !isFetching && !initialized.current) {
+      initialized.current = true;
+      actor.initialize().catch((err) => {
+        // Silently ignore initialization errors (backend may already be seeded)
+        console.debug("Initialize skipped:", err);
+      });
+    }
+  }, [actor, isFetching]);
 
   const filteredStores = useMemo(() => {
     if (!stores) return [];

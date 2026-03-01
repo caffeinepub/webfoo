@@ -12,7 +12,7 @@ export function RegisterPage() {
   const navigate = useNavigate();
 
   const [displayName, setDisplayName] = useState("");
-  const [username, setUsername] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -24,8 +24,20 @@ export function RegisterPage() {
     e.preventDefault();
     setError("");
 
-    if (!displayName.trim() || !username.trim() || !password.trim()) {
-      setError("All fields are required.");
+    const cleanPhone = phone.replace(/\D/g, "");
+
+    if (!displayName.trim()) {
+      setError("Please enter your full name.");
+      return;
+    }
+
+    if (cleanPhone.length !== 10) {
+      setError("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+
+    if (!password.trim()) {
+      setError("Please enter a password.");
       return;
     }
 
@@ -40,11 +52,7 @@ export function RegisterPage() {
     }
 
     setIsLoading(true);
-    const result = await register(
-      username.trim(),
-      displayName.trim(),
-      password,
-    );
+    const result = await register(cleanPhone, displayName.trim(), password);
     setIsLoading(false);
 
     if (result.success) {
@@ -93,7 +101,7 @@ export function RegisterPage() {
         <div className="flex flex-col items-center mb-8">
           <Link to="/">
             <img
-              src="/assets/uploads/cropped_circle_image-1.png"
+              src="/assets/uploads/cropped_circle_image-1-1.png"
               alt="WebFoo Mart"
               className="h-20 w-20 object-contain rounded-full shadow-lg mb-4"
               style={{ border: "3px solid rgba(6,182,212,0.4)" }}
@@ -141,7 +149,7 @@ export function RegisterPage() {
                   htmlFor="displayName"
                   className="text-sm font-semibold text-white/80"
                 >
-                  Display Name
+                  Full Name
                 </Label>
                 <Input
                   id="displayName"
@@ -161,21 +169,21 @@ export function RegisterPage() {
                 />
               </div>
 
-              {/* Username */}
+              {/* Mobile Number */}
               <div className="space-y-1.5">
                 <Label
-                  htmlFor="username"
+                  htmlFor="phone"
                   className="text-sm font-semibold text-white/80"
                 >
-                  Username
+                  Mobile Number
                 </Label>
                 <Input
-                  id="username"
-                  type="text"
-                  placeholder="Choose a unique username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  autoComplete="username"
+                  id="phone"
+                  type="tel"
+                  placeholder="10-digit mobile number"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  autoComplete="tel"
                   required
                   className="h-11 rounded-xl placeholder:text-white/30 focus-visible:ring-cyan-400/40"
                   style={{
@@ -184,6 +192,12 @@ export function RegisterPage() {
                     color: "white",
                   }}
                 />
+                <p
+                  className="text-xs"
+                  style={{ color: "rgba(255,255,255,0.35)" }}
+                >
+                  This will be your login ID
+                </p>
               </div>
 
               {/* Password */}

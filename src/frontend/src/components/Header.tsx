@@ -1,7 +1,7 @@
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { Link } from "@tanstack/react-router";
-import { LogIn, LogOut, ShoppingCart, User } from "lucide-react";
+import { LogIn, LogOut, ShoppingCart, UserCircle } from "lucide-react";
 import { motion } from "motion/react";
 
 export function Header() {
@@ -14,9 +14,10 @@ export function Header() {
         {/* Logo */}
         <Link to="/" className="flex items-center group">
           <img
-            src="/assets/uploads/cropped_circle_image-1.png"
+            src="/assets/uploads/cropped_circle_image-1-1.png"
             alt="WebFoo Mart"
-            className="h-14 w-14 object-contain"
+            className="h-14 w-14 rounded-full object-cover"
+            style={{ border: "2px solid rgba(6,182,212,0.35)" }}
           />
         </Link>
 
@@ -25,35 +26,35 @@ export function Header() {
           {/* Auth controls */}
           {currentUser ? (
             <div className="flex items-center gap-2">
-              {/* User display */}
-              <div
-                className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl"
-                style={{
-                  backgroundColor: "rgba(6,182,212,0.12)",
-                  border: "1px solid rgba(6,182,212,0.2)",
-                }}
-              >
-                <User className="w-4 h-4" style={{ color: "#06B6D4" }} />
-                <span className="text-sm font-medium text-white max-w-[100px] truncate">
-                  {currentUser.displayName}
-                </span>
-              </div>
-              {/* Mobile: just icon */}
-              <div
-                className="flex sm:hidden items-center justify-center w-9 h-9 rounded-xl"
-                style={{
-                  backgroundColor: "rgba(6,182,212,0.12)",
-                  border: "1px solid rgba(6,182,212,0.2)",
-                }}
-              >
-                <User className="w-4 h-4" style={{ color: "#06B6D4" }} />
-              </div>
+              {/* Account link (shows name on desktop) */}
+              <Link to="/account">
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl transition-colors"
+                  style={{
+                    backgroundColor: "rgba(6,182,212,0.12)",
+                    border: "1px solid rgba(6,182,212,0.2)",
+                  }}
+                  aria-label="My Account"
+                >
+                  <UserCircle
+                    className="w-4 h-4 flex-shrink-0"
+                    style={{ color: "#06B6D4" }}
+                  />
+                  <span className="hidden sm:inline text-sm font-medium text-white max-w-[100px] truncate">
+                    {currentUser.displayName}
+                  </span>
+                </motion.div>
+              </Link>
               {/* Logout button */}
               <motion.button
+                type="button"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={logout}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/8 hover:bg-white/15 transition-colors text-sm font-medium text-white/70 hover:text-white"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl transition-colors text-sm font-medium"
+                style={{ color: "rgba(255,255,255,0.7)" }}
                 aria-label="Logout"
               >
                 <LogOut className="w-4 h-4" />

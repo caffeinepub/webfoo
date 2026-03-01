@@ -120,21 +120,21 @@ export function LoginPage() {
                 </motion.div>
               )}
 
-              {/* Username */}
+              {/* Mobile Number */}
               <div className="space-y-1.5">
                 <Label
                   htmlFor="username"
                   className="text-sm font-semibold text-white/80"
                 >
-                  Username
+                  Mobile Number
                 </Label>
                 <Input
                   id="username"
-                  type="text"
-                  placeholder="Enter your username"
+                  type="tel"
+                  placeholder="Enter your 10-digit mobile number"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  autoComplete="username"
+                  autoComplete="tel"
                   autoFocus
                   required
                   className="h-11 rounded-xl text-white placeholder:text-white/30 focus-visible:ring-cyan-400/40"

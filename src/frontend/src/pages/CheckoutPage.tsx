@@ -4,56 +4,39 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
-import { usePlaceOrder } from "@/hooks/useQueries";
+import { usePlaceOrderWithUser } from "@/hooks/useQueries";
 import { formatPrice } from "@/utils/categoryColors";
 import { useNavigate } from "@tanstack/react-router";
 import {
   Check,
-  CreditCard,
   Loader2,
-  Lock,
   MapPin,
+  Package,
+  Phone,
   ShoppingBag,
+  Truck,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-const SHIPPING_CENTS = BigInt(499);
+const SHIPPING_CENTS = BigInt(0);
 
-type Step = "address" | "payment";
+type Step = "address" | "confirm";
 
 interface AddressForm {
   fullName: string;
+  phone: string;
   street: string;
   city: string;
   zip: string;
-}
-
-interface PaymentForm {
-  cardNumber: string;
-  expiry: string;
-  cvv: string;
-}
-
-function formatCardNumber(val: string): string {
-  const digits = val.replace(/\D/g, "").slice(0, 16);
-  return digits.replace(/(.{4})/g, "$1 ").trim();
-}
-
-function formatExpiry(val: string): string {
-  const digits = val.replace(/\D/g, "").slice(0, 4);
-  if (digits.length >= 3) {
-    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-  }
-  return digits;
 }
 
 export function CheckoutPage() {
   const navigate = useNavigate();
   const { currentUser, isInitializing } = useAuth();
   const { items, subtotal, clearCart } = useCart();
-  const placeOrder = usePlaceOrder();
+  const placeOrderWithUser = usePlaceOrderWithUser();
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -65,49 +48,54 @@ export function CheckoutPage() {
   const [step, setStep] = useState<Step>("address");
   const [address, setAddress] = useState<AddressForm>({
     fullName: "",
+    phone: "",
     street: "",
     city: "",
     zip: "",
-  });
-  const [payment, setPayment] = useState<PaymentForm>({
-    cardNumber: "",
-    expiry: "",
-    cvv: "",
   });
 
   const total = subtotal + (items.length > 0 ? SHIPPING_CENTS : BigInt(0));
 
   const addressValid =
     address.fullName.trim() &&
+    address.phone.trim() &&
     address.street.trim() &&
     address.city.trim() &&
     address.zip.trim();
 
-  const paymentValid =
-    payment.cardNumber.replace(/\s/g, "").length === 16 &&
-    payment.expiry.length === 5 &&
-    payment.cvv.length >= 3;
-
   const handleAddressNext = (e: React.FormEvent) => {
     e.preventDefault();
     if (!addressValid) return;
-    setStep("payment");
+    setStep("confirm");
   };
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!paymentValid || items.length === 0) return;
+    if (items.length === 0 || !currentUser) return;
 
-    const addressString = `${address.fullName}, ${address.street}, ${address.city} ${address.zip}`;
+    const addressString = `${address.fullName}, ${address.phone}, ${address.street}, ${address.city} ${address.zip}`;
     const productIds = items.map((item) => item.productId);
     const quantities = items.map((item) => BigInt(item.quantity));
+    const totalCents = items.reduce(
+      (sum, item) => sum + Number(item.price) * item.quantity,
+      0,
+    );
 
     try {
-      const orderId = await placeOrder.mutateAsync({
+      const orderId = await placeOrderWithUser.mutateAsync({
+        username: currentUser.username,
         productIds,
         quantities,
         address: addressString,
+        items: items.map((item) => ({
+          productId: Number(item.productId),
+          productName: item.productName,
+          quantity: item.quantity,
+          price: Number(item.price),
+        })),
+        totalCents,
       });
+
       clearCart();
       navigate({ to: "/order-confirmed", search: { orderId } });
     } catch (err) {
@@ -116,7 +104,9 @@ export function CheckoutPage() {
     }
   };
 
-  if (items.length === 0 && !placeOrder.isPending) {
+  const isOrderPending = placeOrderWithUser.isPending;
+
+  if (items.length === 0 && !isOrderPending) {
     return (
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-16 text-center min-h-screen">
         <div className="text-5xl mb-4">🛒</div>
@@ -141,9 +131,9 @@ export function CheckoutPage() {
       icon: <MapPin className="w-4 h-4" />,
     },
     {
-      key: "payment",
-      label: "Payment",
-      icon: <CreditCard className="w-4 h-4" />,
+      key: "confirm",
+      label: "Confirm & Place Order",
+      icon: <Package className="w-4 h-4" />,
     },
   ];
 
@@ -182,7 +172,7 @@ export function CheckoutPage() {
         <div className="flex items-center gap-3 mb-10">
           {steps.map((s, idx) => {
             const isActive = step === s.key;
-            const isDone = s.key === "address" && step === "payment";
+            const isDone = s.key === "address" && step === "confirm";
             return (
               <div key={s.key} className="flex items-center gap-3">
                 {idx > 0 && (
@@ -284,6 +274,32 @@ export function CheckoutPage() {
                     </div>
                     <div>
                       <Label
+                        htmlFor="phone"
+                        className="mb-1.5 block text-sm font-semibold"
+                      >
+                        Phone Number *
+                      </Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                        <Input
+                          id="phone"
+                          placeholder="+91 98765 43210"
+                          value={address.phone}
+                          onChange={(e) =>
+                            setAddress((a) => ({
+                              ...a,
+                              phone: e.target.value,
+                            }))
+                          }
+                          required
+                          autoComplete="tel"
+                          className="rounded-xl h-11 pl-9"
+                          type="tel"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label
                         htmlFor="street"
                         className="mb-1.5 block text-sm font-semibold"
                       >
@@ -311,7 +327,7 @@ export function CheckoutPage() {
                         </Label>
                         <Input
                           id="city"
-                          placeholder="San Francisco"
+                          placeholder="Mumbai"
                           value={address.city}
                           onChange={(e) =>
                             setAddress((a) => ({ ...a, city: e.target.value }))
@@ -326,11 +342,11 @@ export function CheckoutPage() {
                           htmlFor="zip"
                           className="mb-1.5 block text-sm font-semibold"
                         >
-                          ZIP Code *
+                          PIN Code *
                         </Label>
                         <Input
                           id="zip"
-                          placeholder="94102"
+                          placeholder="400001"
                           value={address.zip}
                           onChange={(e) =>
                             setAddress((a) => ({ ...a, zip: e.target.value }))
@@ -351,12 +367,12 @@ export function CheckoutPage() {
                     className="w-full mt-6 text-white rounded-xl font-bold shadow-md hover:opacity-90 transition-all"
                     style={{ backgroundColor: "#0891B2" }}
                   >
-                    Continue to Payment →
+                    Continue to Confirm →
                   </Button>
                 </motion.form>
               ) : (
                 <motion.form
-                  key="payment"
+                  key="confirm"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
@@ -369,117 +385,88 @@ export function CheckoutPage() {
                       className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                       style={{ backgroundColor: "#ECFEFF" }}
                     >
-                      <CreditCard
-                        className="w-5 h-5"
-                        style={{ color: "#06B6D4" }}
-                      />
+                      <Truck className="w-5 h-5" style={{ color: "#06B6D4" }} />
                     </div>
                     <div>
                       <h2 className="font-display font-bold text-xl">
-                        Payment Details
+                        Confirm & Place Order
                       </h2>
                       <p className="text-xs text-muted-foreground">
-                        Simulated payment — no real charges
+                        Review your order before placing
                       </p>
                     </div>
-                    <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary px-2.5 py-1 rounded-full">
-                      <Lock className="w-3 h-3" />
-                      Secure
-                    </span>
+                  </div>
+
+                  {/* Cash on Delivery card */}
+                  <div
+                    className="rounded-2xl p-5 mb-5"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, #ECFEFF 0%, #F0FDF4 100%)",
+                      border: "2px solid rgba(6,182,212,0.25)",
+                    }}
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: "#DCFCE7" }}
+                      >
+                        <Package
+                          className="w-5 h-5"
+                          style={{ color: "#16A34A" }}
+                        />
+                      </div>
+                      <div>
+                        <p
+                          className="font-bold text-sm"
+                          style={{ color: "#15803D" }}
+                        >
+                          Cash on Delivery
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Pay when your order arrives at your doorstep
+                        </p>
+                      </div>
+                      <div
+                        className="ml-auto px-2.5 py-1 rounded-full text-xs font-bold"
+                        style={{
+                          backgroundColor: "#DCFCE7",
+                          color: "#15803D",
+                        }}
+                      >
+                        ✓ Selected
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground pl-[52px]">
+                      No online payment required. Keep the exact amount ready
+                      for a smooth delivery experience.
+                    </p>
                   </div>
 
                   {/* Delivery address recap */}
                   <div
-                    className="rounded-xl p-3 mb-5 text-sm"
+                    className="rounded-xl p-4 mb-5 text-sm"
                     style={{
-                      backgroundColor: "#F0FDFA",
-                      border: "1px solid #CCFBF1",
+                      backgroundColor: "#f8fdff",
+                      border: "1px solid rgba(6,182,212,0.2)",
                     }}
                   >
-                    <p className="text-xs font-bold uppercase tracking-wide text-teal-600 mb-1">
+                    <p
+                      className="text-xs font-bold uppercase tracking-wide mb-2 flex items-center gap-1.5"
+                      style={{ color: "#0891B2" }}
+                    >
+                      <MapPin className="w-3.5 h-3.5" />
                       Delivering to
                     </p>
-                    <p className="text-foreground font-medium">
-                      {address.fullName}, {address.street}, {address.city}{" "}
-                      {address.zip}
+                    <p className="text-foreground font-semibold text-sm">
+                      {address.fullName}
                     </p>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div>
-                      <Label
-                        htmlFor="cardNumber"
-                        className="mb-1.5 block text-sm font-semibold"
-                      >
-                        Card Number *
-                      </Label>
-                      <Input
-                        id="cardNumber"
-                        placeholder="4242 4242 4242 4242"
-                        value={payment.cardNumber}
-                        onChange={(e) =>
-                          setPayment((p) => ({
-                            ...p,
-                            cardNumber: formatCardNumber(e.target.value),
-                          }))
-                        }
-                        required
-                        className="rounded-xl h-11 font-mono tracking-wider"
-                        maxLength={19}
-                        autoComplete="cc-number"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label
-                          htmlFor="expiry"
-                          className="mb-1.5 block text-sm font-semibold"
-                        >
-                          Expiry Date *
-                        </Label>
-                        <Input
-                          id="expiry"
-                          placeholder="MM/YY"
-                          value={payment.expiry}
-                          onChange={(e) =>
-                            setPayment((p) => ({
-                              ...p,
-                              expiry: formatExpiry(e.target.value),
-                            }))
-                          }
-                          required
-                          className="rounded-xl h-11 font-mono"
-                          maxLength={5}
-                          autoComplete="cc-exp"
-                        />
-                      </div>
-                      <div>
-                        <Label
-                          htmlFor="cvv"
-                          className="mb-1.5 block text-sm font-semibold"
-                        >
-                          CVV *
-                        </Label>
-                        <Input
-                          id="cvv"
-                          placeholder="123"
-                          value={payment.cvv}
-                          onChange={(e) =>
-                            setPayment((p) => ({
-                              ...p,
-                              cvv: e.target.value
-                                .replace(/\D/g, "")
-                                .slice(0, 4),
-                            }))
-                          }
-                          required
-                          className="rounded-xl h-11 font-mono"
-                          type="password"
-                          maxLength={4}
-                          autoComplete="cc-csc"
-                        />
-                      </div>
-                    </div>
+                    <p className="text-muted-foreground text-xs mt-0.5">
+                      {address.phone}
+                    </p>
+                    <p className="text-muted-foreground text-xs">
+                      {address.street}, {address.city} {address.zip}
+                    </p>
                   </div>
 
                   <div className="flex gap-3 mt-6">
@@ -495,11 +482,11 @@ export function CheckoutPage() {
                     <Button
                       type="submit"
                       size="lg"
-                      disabled={!paymentValid || placeOrder.isPending}
+                      disabled={isOrderPending}
                       className="flex-1 text-white rounded-xl font-bold shadow-md hover:opacity-90 transition-all"
                       style={{ backgroundColor: "#0891B2" }}
                     >
-                      {placeOrder.isPending ? (
+                      {isOrderPending ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                           Placing Order...
@@ -546,7 +533,13 @@ export function CheckoutPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Shipping</span>
-                  <span>{formatPrice(SHIPPING_CENTS)}</span>
+                  <span className="text-green-600 font-semibold">Free</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Payment</span>
+                  <span className="text-green-600 font-semibold text-xs">
+                    Cash on Delivery
+                  </span>
                 </div>
                 <Separator />
                 <div className="flex justify-between font-bold text-base">
@@ -556,8 +549,8 @@ export function CheckoutPage() {
               </div>
 
               <p className="text-xs text-muted-foreground text-center mt-4 flex items-center justify-center gap-1">
-                <Lock className="w-3 h-3" />
-                Simulated secure checkout
+                <Truck className="w-3 h-3" />
+                Pay on delivery · No prepayment needed
               </p>
             </div>
           </div>

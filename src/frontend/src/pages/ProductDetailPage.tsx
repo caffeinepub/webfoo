@@ -1,16 +1,16 @@
-import type { Product } from "@/backend.d";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCart } from "@/context/CartContext";
-import { SAMPLE_PRODUCTS } from "@/data/sampleProducts";
 import {
-  EXTRA_STORES,
+  type ProductWithImage,
+  type StoreWithImage,
   useGetAllStores,
   useGetProduct,
   useGetReviews,
 } from "@/hooks/useQueries";
 import { formatPrice, getCategoryStyle } from "@/utils/categoryColors";
+import { getAllLocalProducts } from "@/utils/localStores";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import {
   ArrowLeft,
@@ -48,31 +48,53 @@ export function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const { addItem } = useCart();
 
+  const productIdNum = Number(productId);
   const productIdBig = BigInt(productId);
-  const storeKey = Math.floor(Number(productIdBig) / 100).toString();
+  const isLocalProduct = productIdNum >= 10000;
 
-  // Find product: first check sample data (frontend stores), then backend
-  const sampleProduct: Product | undefined = useMemo(() => {
-    const storeProducts = SAMPLE_PRODUCTS[storeKey];
-    return storeProducts?.find((p) => p.id === productIdBig);
-  }, [productIdBig, storeKey]);
+  // For local admin-added products, look up directly from localStorage
+  const localProduct: ProductWithImage | null = useMemo(() => {
+    if (!isLocalProduct) return null;
+    const allLocal = getAllLocalProducts();
+    const found = allLocal.find((p) => p.id === productIdNum);
+    if (!found) return null;
+    return {
+      id: BigInt(found.id),
+      storeId: BigInt(found.storeId),
+      name: found.name,
+      description: found.description,
+      price: BigInt(found.price),
+      imageUrl: found.imageUrl ?? "",
+      outOfStock: found.outOfStock ?? false,
+    };
+  }, [isLocalProduct, productIdNum]);
 
-  const { data: backendProduct, isLoading: productLoading } =
+  // Only call the backend hook for non-local products
+  const { data: backendProduct, isLoading: backendLoading } =
     useGetProduct(productIdBig);
+
   const { data: reviews, isLoading: reviewsLoading } =
     useGetReviews(productIdBig);
+
   const { data: allStores } = useGetAllStores();
 
-  const product = sampleProduct ?? backendProduct;
+  // Final product: prefer local product if local, else backend
+  const product: ProductWithImage | null | undefined = isLocalProduct
+    ? localProduct
+    : backendProduct;
 
-  const store = useMemo(() => {
-    if (!product) return null;
-    const stores = allStores ?? EXTRA_STORES;
-    return stores.find((s) => s.id === product.storeId);
+  const isLoading = !isLocalProduct && backendLoading;
+
+  const store: StoreWithImage | undefined = useMemo(() => {
+    if (!product || !allStores) return undefined;
+    return allStores.find((s) => s.id === product.storeId);
   }, [product, allStores]);
 
-  const style = store ? getCategoryStyle(store.category) : null;
-  const isLoading = !sampleProduct && productLoading;
+  const style = store
+    ? getCategoryStyle(store.category)
+    : product
+      ? getCategoryStyle("General Store")
+      : null;
 
   const handleAddToCart = () => {
     if (!product) return;
@@ -143,6 +165,19 @@ export function ProductDetailPage() {
         {/* Product image */}
         {isLoading ? (
           <Skeleton className="rounded-3xl aspect-square w-full max-w-md mx-auto" />
+        ) : product?.imageUrl ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            className="rounded-3xl aspect-square w-full max-w-md mx-auto overflow-hidden shadow-lg"
+          >
+            <img
+              src={product.imageUrl}
+              alt={product.name}
+              className="w-full h-full object-cover"
+            />
+          </motion.div>
         ) : style ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -216,9 +251,19 @@ export function ProductDetailPage() {
                 </span>
               )}
 
-              <h1 className="font-display font-extrabold text-2xl sm:text-3xl text-foreground leading-tight mb-4">
-                {product.name}
-              </h1>
+              <div className="flex items-center gap-3 mb-4 flex-wrap">
+                <h1 className="font-display font-extrabold text-2xl sm:text-3xl text-foreground leading-tight">
+                  {product.name}
+                </h1>
+                {product.outOfStock && (
+                  <span
+                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide flex-shrink-0"
+                    style={{ backgroundColor: "#FEE2E2", color: "#B91C1C" }}
+                  >
+                    Out of Stock
+                  </span>
+                )}
+              </div>
 
               <div
                 className="font-display font-bold text-4xl mb-5"
@@ -233,40 +278,65 @@ export function ProductDetailPage() {
 
               <Separator className="mb-6" />
 
-              {/* Quantity selector */}
-              <div className="flex items-center gap-4 mb-6">
-                <span className="font-semibold text-foreground text-sm">
-                  Quantity
-                </span>
-                <div className="flex items-center gap-1 bg-secondary rounded-xl p-1">
-                  <button
-                    type="button"
-                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                    className="w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white transition-all"
-                    aria-label="Decrease quantity"
-                    disabled={quantity <= 1}
-                  >
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <span className="w-11 text-center font-bold text-base text-foreground">
-                    {quantity}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setQuantity((q) => q + 1)}
-                    className="w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white transition-all"
-                    aria-label="Increase quantity"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
+              {product.outOfStock ? (
+                <div
+                  className="rounded-xl p-4 mb-6 flex items-center gap-3"
+                  style={{
+                    backgroundColor: "#FEF2F2",
+                    border: "1px solid #FECACA",
+                  }}
+                >
+                  <span className="text-2xl">😔</span>
+                  <div>
+                    <p
+                      className="font-bold text-sm"
+                      style={{ color: "#B91C1C" }}
+                    >
+                      Currently Unavailable
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      This product is out of stock. Check back soon!
+                    </p>
+                  </div>
                 </div>
-                <span className="text-sm text-muted-foreground">
-                  Subtotal:{" "}
-                  <span className="font-semibold text-foreground">
-                    {formatPrice(product.price * BigInt(quantity))}
-                  </span>
-                </span>
-              </div>
+              ) : (
+                <>
+                  {/* Quantity selector */}
+                  <div className="flex items-center gap-4 mb-6">
+                    <span className="font-semibold text-foreground text-sm">
+                      Quantity
+                    </span>
+                    <div className="flex items-center gap-1 bg-secondary rounded-xl p-1">
+                      <button
+                        type="button"
+                        onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                        className="w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white transition-all"
+                        aria-label="Decrease quantity"
+                        disabled={quantity <= 1}
+                      >
+                        <Minus className="w-4 h-4" />
+                      </button>
+                      <span className="w-11 text-center font-bold text-base text-foreground">
+                        {quantity}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setQuantity((q) => q + 1)}
+                        className="w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white transition-all"
+                        aria-label="Increase quantity"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <span className="text-sm text-muted-foreground">
+                      Subtotal:{" "}
+                      <span className="font-semibold text-foreground">
+                        {formatPrice(product.price * BigInt(quantity))}
+                      </span>
+                    </span>
+                  </div>
+                </>
+              )}
 
               {/* CTA buttons */}
               <div className="flex flex-col sm:flex-row gap-3 mb-5">
@@ -274,7 +344,8 @@ export function ProductDetailPage() {
                 <Button
                   onClick={handleBuyNow}
                   size="lg"
-                  className="flex-1 text-white rounded-xl font-bold text-sm h-12 shadow-md hover:shadow-lg transition-all hover:opacity-90 active:scale-[0.98]"
+                  disabled={!!product.outOfStock}
+                  className="flex-1 text-white rounded-xl font-bold text-sm h-12 shadow-md hover:shadow-lg transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ backgroundColor: "#0891B2" }}
                 >
                   <Zap className="w-4 h-4 mr-2" />
@@ -285,7 +356,8 @@ export function ProductDetailPage() {
                   onClick={handleAddToCart}
                   variant="outline"
                   size="lg"
-                  className="flex-1 rounded-xl font-bold text-sm h-12 border-2 transition-all hover:opacity-80 active:scale-[0.98]"
+                  disabled={!!product.outOfStock}
+                  className="flex-1 rounded-xl font-bold text-sm h-12 border-2 transition-all hover:opacity-80 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{
                     borderColor: style.bg,
                     color: style.bg,
@@ -307,8 +379,8 @@ export function ProductDetailPage() {
                   style={{ color: style.bg }}
                 />
                 <span>
-                  Free shipping on orders over $50 · Flat $4.99 shipping
-                  otherwise · Delivered in 2–5 business days
+                  Free shipping on all orders · Cash on Delivery · Delivered in
+                  2–5 business days
                 </span>
               </div>
             </>

@@ -11,6 +11,7 @@ import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 
 
+// Specify the data migration function in with-clause
 
 actor {
   type Store = {
@@ -37,11 +38,30 @@ actor {
 
   type Order = {
     id : Text;
+    username : Text;
     userId : Principal;
     productIds : [Nat];
     quantities : [Nat];
     address : Text;
     timestamp : Int;
+    status : Text;
+  };
+
+  type OrderItem = {
+    productId : Nat;
+    productName : Text;
+    price : Nat;
+    quantity : Nat;
+  };
+
+  type OrderDetail = {
+    id : Text;
+    username : Text;
+    items : [OrderItem];
+    address : Text;
+    total : Nat;
+    timestamp : Int;
+    status : Text;
   };
 
   public type UserProfile = {
@@ -52,12 +72,12 @@ actor {
   let lastStoreId = 12;
   var lastProductId = 48;
   var lastOrderId = 0;
-  var lastUserId = 0;
 
   let stores = Map.empty<Nat, Store>();
   let products = Map.empty<Nat, Product>();
   let reviews = Map.empty<Nat, [Review]>();
   let orders = Map.empty<Text, Order>();
+  let userProfiles = Map.empty<Principal, UserProfile>();
 
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
@@ -208,15 +228,114 @@ actor {
 
     let newOrder : Order = {
       id = orderId;
+      username = "anonymous";
       userId = caller;
       productIds;
       quantities;
       address;
       timestamp = Time.now();
+      status = "pending";
     };
 
     orders.add(orderId, newOrder);
     orderId;
+  };
+
+  public shared ({ caller }) func placeOrderWithUser(username : Text, productIds : [Nat], quantities : [Nat], address : Text) : async Text {
+    if (productIds.size() != quantities.size()) {
+      return "Error: Product and quantity arrays must be of equal length";
+    };
+
+    lastOrderId += 1;
+    let orderId = "ORD-" # lastOrderId.toText();
+
+    let newOrder : Order = {
+      id = orderId;
+      username;
+      userId = caller;
+      productIds;
+      quantities;
+      address;
+      timestamp = Time.now();
+      status = "pending";
+    };
+
+    orders.add(orderId, newOrder);
+    orderId;
+  };
+
+  public query ({ caller }) func getOrdersByUser(username : Text) : async [OrderDetail] {
+    let userOrders = orders.values().filter(
+      func(order) { order.username == username }
+    );
+    userOrders.map(convertOrderToDetail).toArray();
+  };
+
+  public query ({ caller }) func getAllOrders() : async [OrderDetail] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #admin))) {
+      Runtime.trap("Unauthorized: Only admins can access all orders");
+    };
+    orders.values().map(convertOrderToDetail).toArray();
+  };
+
+  func convertOrderToDetail(order : Order) : OrderDetail {
+    var total = 0;
+    let itemsList = List.empty<OrderItem>();
+
+    for (i in Nat.range(0, order.productIds.size())) {
+      let productId = order.productIds[i];
+      let quantity = order.quantities[i];
+      let productName = switch (products.get(productId)) {
+        case (?product) { product.name };
+        case (null) { "Unknown" };
+      };
+      let price = switch (products.get(productId)) {
+        case (?product) { product.price };
+        case (null) { 0 };
+      };
+      total += price * quantity;
+
+      let item : OrderItem = {
+        productId = productId;
+        productName;
+        price;
+        quantity;
+      };
+      itemsList.add(item);
+    };
+
+    {
+      id = order.id;
+      username = order.username;
+      items = itemsList.toArray();
+      address = order.address;
+      total;
+      timestamp = order.timestamp;
+      status = order.status;
+    };
+  };
+
+  // User Profile Management Functions
+  public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can access profiles");
+    };
+    userProfiles.get(caller);
+  };
+
+  public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
+    // Users can view their own profile, admins can view any profile
+    if (caller != user and not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Can only view your own profile");
+    };
+    userProfiles.get(user);
+  };
+
+  public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can save profiles");
+    };
+    userProfiles.add(caller, profile);
   };
 
   public shared ({ caller }) func _clearStoresForTesting() : async () {

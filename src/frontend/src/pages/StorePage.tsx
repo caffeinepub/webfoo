@@ -1,40 +1,46 @@
-import type { Store } from "@/backend.d";
 import { ProductCard } from "@/components/ProductCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  EXTRA_STORES,
+  type StoreWithImage,
   useGetAllStores,
   useGetProductsByStore,
 } from "@/hooks/useQueries";
 import { getCategoryStyle } from "@/utils/categoryColors";
+import { getAllLocalStores } from "@/utils/localStores";
 import { Link, useParams } from "@tanstack/react-router";
 import { ArrowLeft, PackageOpen } from "lucide-react";
 import { motion } from "motion/react";
 import { useMemo } from "react";
 
-// Sample products for frontend-only stores (ids 7-12)
-import { SAMPLE_PRODUCTS } from "@/data/sampleProducts";
-
 export function StorePage() {
   const { storeId } = useParams({ from: "/store/$storeId" });
   const storeIdBig = BigInt(storeId);
+  const storeIdNum = Number(storeIdBig);
 
   const { data: allStores, isLoading: storesLoading } = useGetAllStores();
-  const { data: backendProducts, isLoading: productsLoading } =
+  const { data: products, isLoading: productsLoading } =
     useGetProductsByStore(storeIdBig);
 
-  const store: Store | undefined = useMemo(() => {
-    if (allStores) return allStores.find((s) => s.id === storeIdBig);
-    // Fallback to extra stores
-    return EXTRA_STORES.find((s) => s.id === storeIdBig);
-  }, [allStores, storeIdBig]);
-
-  const products = useMemo(() => {
-    if (storeIdBig >= BigInt(7)) {
-      return SAMPLE_PRODUCTS[storeId] ?? [];
+  const store: StoreWithImage | undefined = useMemo(() => {
+    if (allStores) {
+      const found = allStores.find((s) => s.id === storeIdBig);
+      if (found) return found;
     }
-    return backendProducts ?? [];
-  }, [storeIdBig, storeId, backendProducts]);
+    // Fallback: check localStorage for admin-added stores
+    if (storeIdNum >= 100) {
+      const localStore = getAllLocalStores().find((s) => s.id === storeIdNum);
+      if (localStore) {
+        return {
+          id: BigInt(localStore.id),
+          name: localStore.name,
+          description: localStore.description,
+          category: localStore.category,
+          imageUrl: localStore.imageUrl,
+        };
+      }
+    }
+    return undefined;
+  }, [allStores, storeIdBig, storeIdNum]);
 
   const isLoading = storesLoading || productsLoading;
   const style = store ? getCategoryStyle(store.category) : null;
@@ -71,7 +77,7 @@ export function StorePage() {
             style={{ backgroundColor: "white" }}
           />
           <div
-            className="absolute -bottom-16 -left-8 w-48 h-48 rounded-full opacity-08"
+            className="absolute -bottom-16 -left-8 w-48 h-48 rounded-full opacity-[0.08]"
             style={{ backgroundColor: "white" }}
           />
           {/* Inner glow */}
@@ -100,16 +106,25 @@ export function StorePage() {
               className="flex items-start gap-5"
             >
               {/* Store icon */}
-              <div
-                className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl flex-shrink-0 shadow-lg"
-                style={{
-                  backgroundColor: "rgba(255,255,255,0.22)",
-                  backdropFilter: "blur(8px)",
-                  border: "1px solid rgba(255,255,255,0.3)",
-                }}
-              >
-                {style.emoji}
-              </div>
+              {store.imageUrl ? (
+                <img
+                  src={store.imageUrl}
+                  alt={store.name}
+                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover flex-shrink-0 shadow-lg"
+                  style={{ border: "2px solid rgba(255,255,255,0.4)" }}
+                />
+              ) : (
+                <div
+                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl flex-shrink-0 shadow-lg"
+                  style={{
+                    backgroundColor: "rgba(255,255,255,0.22)",
+                    backdropFilter: "blur(8px)",
+                    border: "1px solid rgba(255,255,255,0.3)",
+                  }}
+                >
+                  {style.emoji}
+                </div>
+              )}
 
               <div>
                 {/* Category badge */}
@@ -160,7 +175,7 @@ export function StorePage() {
               </div>
             ))}
           </div>
-        ) : products.length === 0 ? (
+        ) : !products || products.length === 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
