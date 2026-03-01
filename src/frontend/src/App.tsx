@@ -1,3 +1,4 @@
+import { BottomNav } from "@/components/BottomNav";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { Toaster } from "@/components/ui/sonner";
@@ -22,57 +23,80 @@ import {
   createRouter,
 } from "@tanstack/react-router";
 
-// Root route with layout
+// Root route (no layout, just providers)
 const rootRoute = createRootRoute({
   component: () => (
     <AuthProvider>
       <CartProvider>
-        <div className="min-h-screen flex flex-col">
-          <Header />
-          <div className="flex-1">
-            <Outlet />
-          </div>
-          <Footer />
-        </div>
+        <Outlet />
         <Toaster richColors position="top-right" />
       </CartProvider>
     </AuthProvider>
   ),
 });
 
-// Individual routes
-const indexRoute = createRoute({
+// Layout route with Header + Footer for regular pages
+const mainLayoutRoute = createRoute({
   getParentRoute: () => rootRoute,
+  id: "main-layout",
+  component: () => (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <div className="flex-1">
+        <Outlet />
+      </div>
+      <Footer />
+      <BottomNav />
+    </div>
+  ),
+});
+
+// Layout route without Header for admin
+const adminLayoutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  id: "admin-layout",
+  component: () => (
+    <div className="min-h-screen flex flex-col">
+      <div className="flex-1">
+        <Outlet />
+      </div>
+    </div>
+  ),
+});
+
+// Individual routes under main layout
+const indexRoute = createRoute({
+  getParentRoute: () => mainLayoutRoute,
   path: "/",
   component: HomePage,
 });
 
 const storeRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => mainLayoutRoute,
   path: "/store/$storeId",
   component: StorePage,
 });
 
 const productRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => mainLayoutRoute,
   path: "/product/$productId",
   component: ProductDetailPage,
 });
 
 const cartRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => mainLayoutRoute,
   path: "/cart",
   component: CartPage,
 });
 
 const checkoutRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => mainLayoutRoute,
   path: "/checkout",
   component: CheckoutPage,
 });
 
 const orderConfirmedRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => mainLayoutRoute,
   path: "/order-confirmed",
   validateSearch: (search: Record<string, unknown>) => ({
     orderId: typeof search.orderId === "string" ? search.orderId : undefined,
@@ -81,7 +105,7 @@ const orderConfirmedRoute = createRoute({
 });
 
 const loginRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => mainLayoutRoute,
   path: "/login",
   validateSearch: (search: Record<string, unknown>) => ({
     redirect: typeof search.redirect === "string" ? search.redirect : undefined,
@@ -90,42 +114,45 @@ const loginRoute = createRoute({
 });
 
 const registerRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => mainLayoutRoute,
   path: "/register",
   component: RegisterPage,
 });
 
 const myOrdersRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => mainLayoutRoute,
   path: "/my-orders",
   component: MyOrdersPage,
 });
 
-const adminRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/admin",
-  component: AdminPage,
-});
-
 const accountRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => mainLayoutRoute,
   path: "/account",
   component: AccountPage,
 });
 
+// Admin route under its own layout (no header)
+const adminRoute = createRoute({
+  getParentRoute: () => adminLayoutRoute,
+  path: "/admin",
+  component: AdminPage,
+});
+
 // Router
 const routeTree = rootRoute.addChildren([
-  indexRoute,
-  storeRoute,
-  productRoute,
-  cartRoute,
-  checkoutRoute,
-  orderConfirmedRoute,
-  loginRoute,
-  registerRoute,
-  myOrdersRoute,
-  adminRoute,
-  accountRoute,
+  mainLayoutRoute.addChildren([
+    indexRoute,
+    storeRoute,
+    productRoute,
+    cartRoute,
+    checkoutRoute,
+    orderConfirmedRoute,
+    loginRoute,
+    registerRoute,
+    myOrdersRoute,
+    accountRoute,
+  ]),
+  adminLayoutRoute.addChildren([adminRoute]),
 ]);
 
 const router = createRouter({ routeTree });

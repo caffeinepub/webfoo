@@ -43,7 +43,7 @@ function StarRating({ rating }: { rating: number }) {
 }
 
 export function ProductDetailPage() {
-  const { productId } = useParams({ from: "/product/$productId" });
+  const { productId } = useParams({ from: "/main-layout/product/$productId" });
   const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
   const { addItem } = useCart();
@@ -137,7 +137,7 @@ export function ProductDetailPage() {
   }
 
   return (
-    <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 min-h-screen">
+    <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 min-h-screen pb-24">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-8 flex-wrap">
         <Link to="/" className="hover:text-foreground transition-colors">

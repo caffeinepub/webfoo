@@ -13,7 +13,7 @@ import { motion } from "motion/react";
 import { useMemo } from "react";
 
 export function StorePage() {
-  const { storeId } = useParams({ from: "/store/$storeId" });
+  const { storeId } = useParams({ from: "/main-layout/store/$storeId" });
   const storeIdBig = BigInt(storeId);
   const storeIdNum = Number(storeIdBig);
 
@@ -60,7 +60,7 @@ export function StorePage() {
   }
 
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen pb-24">
       {/* Store banner header */}
       {isLoading ? (
         <div className="h-44 bg-muted animate-pulse" />

@@ -1,3 +1,4 @@
+import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -136,7 +137,7 @@ export function AccountPage() {
     .toUpperCase();
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-gray-50 pb-24">
       {/* Page header strip */}
       <div
         className="border-b border-white/10"
@@ -431,6 +432,8 @@ export function AccountPage() {
           )}
         </motion.div>
       </div>
+
+      <BottomNav />
     </main>
   );
 }

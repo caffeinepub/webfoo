@@ -268,17 +268,23 @@ function ImageUploader({
 function OrdersTab() {
   const { data: orders, isLoading, refetch, isRefetching } = useGetAllOrders();
   const updateOrderStatus = useUpdateOrderStatus();
+  const [statusFilter, setStatusFilter] = useState("All");
 
   // Orders are read from localStorage - no backend call
-  const sortedOrders = orders
+  const allSortedOrders = orders
     ? [...orders].sort((a, b) => Number(b.timestamp - a.timestamp))
     : [];
 
-  const totalRevenue = sortedOrders.reduce(
+  const sortedOrders =
+    statusFilter === "All"
+      ? allSortedOrders
+      : allSortedOrders.filter((o) => o.status === statusFilter);
+
+  const totalRevenue = allSortedOrders.reduce(
     (sum, o) => sum + o.total,
     BigInt(0),
   );
-  const uniqueCustomers = new Set(sortedOrders.map((o) => o.username)).size;
+  const uniqueCustomers = new Set(allSortedOrders.map((o) => o.username)).size;
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     try {
@@ -367,28 +373,51 @@ function OrdersTab() {
       </div>
 
       {/* Orders header */}
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex flex-wrap items-center gap-3 mb-4">
         <BarChart3 className="w-5 h-5" style={{ color: "#0891B2" }} />
         <h2 className="font-display font-bold text-lg text-foreground">
           All Orders
         </h2>
         {!isLoading && (
-          <span className="text-sm text-muted-foreground ml-auto">
-            {sortedOrders.length} order{sortedOrders.length !== 1 ? "s" : ""}
+          <span className="text-sm text-muted-foreground">
+            {sortedOrders.length}
+            {statusFilter !== "All" ? ` / ${allSortedOrders.length}` : ""} order
+            {sortedOrders.length !== 1 ? "s" : ""}
           </span>
         )}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => refetch()}
-          disabled={isRefetching}
-          className="border-border rounded-xl ml-2"
-        >
-          <RefreshCw
-            className={`w-3.5 h-3.5 mr-1.5 ${isRefetching ? "animate-spin" : ""}`}
-          />
-          Refresh
-        </Button>
+        {/* Status filter */}
+        <div className="ml-auto flex items-center gap-2">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger
+              className="h-8 text-xs rounded-xl w-36"
+              style={{ borderColor: "rgba(6,182,212,0.3)" }}
+            >
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All" className="text-xs">
+                All Statuses
+              </SelectItem>
+              {ORDER_STATUSES.map((s) => (
+                <SelectItem key={s} value={s} className="text-xs">
+                  {s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            disabled={isRefetching}
+            className="border-border rounded-xl"
+          >
+            <RefreshCw
+              className={`w-3.5 h-3.5 mr-1.5 ${isRefetching ? "animate-spin" : ""}`}
+            />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -410,10 +439,14 @@ function OrdersTab() {
             <Package className="w-10 h-10" style={{ color: "#06B6D4" }} />
           </div>
           <h3 className="font-display font-bold text-xl text-foreground mb-2">
-            No orders yet
+            {statusFilter !== "All"
+              ? `No "${statusFilter}" orders`
+              : "No orders yet"}
           </h3>
           <p className="text-muted-foreground text-sm">
-            Orders will appear here once customers start checking out.
+            {statusFilter !== "All"
+              ? `No orders with status "${statusFilter}" found. Try a different filter.`
+              : "Orders will appear here once customers start checking out."}
           </p>
         </motion.div>
       ) : (
@@ -472,29 +505,81 @@ function OrdersTab() {
 
                 {/* Row body */}
                 <div className="px-4 py-3">
-                  <p className="text-sm text-foreground mb-2">
-                    <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wide mr-2">
-                      Items:
-                    </span>
-                    {order.items
-                      .map(
-                        (item) =>
-                          `${Number(item.quantity)}× ${item.productName}`,
-                      )
-                      .join(", ")}
-                  </p>
+                  {/* Items with individual prices */}
+                  <div className="mb-3">
+                    <p className="text-muted-foreground text-xs font-semibold uppercase tracking-wide mb-2">
+                      Items Ordered
+                    </p>
+                    <div className="space-y-1.5">
+                      {order.items.map((item, itemIdx) => (
+                        <div
+                          key={`${order.id}-item-${item.productId ?? itemIdx}`}
+                          className="flex items-center justify-between gap-2 text-sm py-1.5 px-2 rounded-lg"
+                          style={{
+                            backgroundColor: "rgba(6,182,212,0.04)",
+                            border: "1px solid rgba(6,182,212,0.08)",
+                          }}
+                        >
+                          {/* Qty badge + product name */}
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <span
+                              className="font-bold text-xs px-2 py-0.5 rounded-md flex-shrink-0"
+                              style={{
+                                backgroundColor: "rgba(6,182,212,0.15)",
+                                color: "#0891B2",
+                              }}
+                            >
+                              ×{Number(item.quantity)}
+                            </span>
+                            <span className="text-foreground font-medium text-xs truncate">
+                              {item.productName}
+                            </span>
+                          </div>
+                          {/* Unit price + line total */}
+                          <div className="flex items-center gap-3 flex-shrink-0">
+                            <span className="text-muted-foreground text-xs">
+                              {formatPrice(item.price)} each
+                            </span>
+                            <span
+                              className="font-bold text-xs"
+                              style={{ color: "#0891B2" }}
+                            >
+                              {formatPrice(item.price * item.quantity)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
 
                   <Separator className="my-2" />
 
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-sm text-muted-foreground truncate max-w-xs">
-                      <span className="text-xs font-semibold uppercase tracking-wide mr-2">
-                        Deliver to:
+                  {/* Full delivery address + phone */}
+                  <div className="mb-3">
+                    <p className="text-muted-foreground text-xs font-semibold uppercase tracking-wide mb-1.5">
+                      Delivery Address
+                    </p>
+                    {/* Phone from username */}
+                    <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
+                      <span>📱</span>
+                      <span className="font-mono font-semibold text-foreground">
+                        {order.username.length === 10
+                          ? `${order.username.slice(0, 5)} ${order.username.slice(5)}`
+                          : order.username}
                       </span>
-                      {order.address}
+                    </p>
+                    <p className="text-sm text-foreground">{order.address}</p>
+                  </div>
+
+                  <Separator className="my-2" />
+
+                  {/* Total */}
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      Order Total
                     </p>
                     <p
-                      className="font-bold text-base"
+                      className="font-bold text-lg"
                       style={{ color: "#0891B2" }}
                     >
                       {formatPrice(order.total)}

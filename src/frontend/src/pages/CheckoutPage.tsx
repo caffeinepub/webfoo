@@ -138,7 +138,7 @@ export function CheckoutPage() {
   ];
 
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen pb-24">
       {/* Header */}
       <div
         className="border-b border-border"

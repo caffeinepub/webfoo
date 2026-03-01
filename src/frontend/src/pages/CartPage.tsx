@@ -56,7 +56,7 @@ export function CartPage() {
   const total = subtotal + shipping;
 
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen pb-24">
       {/* Header strip */}
       <div
         className="border-b border-border"

@@ -121,7 +121,7 @@ export function MyOrdersPage() {
     : [];
 
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen pb-24">
       {/* Header strip */}
       <div
         className="border-b border-white/10"

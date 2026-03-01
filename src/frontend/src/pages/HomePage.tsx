@@ -37,7 +37,7 @@ export function HomePage() {
   }, [stores, search]);
 
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen pb-24">
       {/* ─── Hero Search Section ─── */}
       <section
         className="relative overflow-hidden"

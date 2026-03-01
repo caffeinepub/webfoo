@@ -4,11 +4,11 @@ import { CheckCircle2, Home, Package, PartyPopper } from "lucide-react";
 import { motion } from "motion/react";
 
 export function OrderConfirmedPage() {
-  const { orderId } = useSearch({ from: "/order-confirmed" });
+  const { orderId } = useSearch({ from: "/main-layout/order-confirmed" });
 
   return (
     <main
-      className="min-h-screen flex items-center justify-center px-4 py-12"
+      className="min-h-screen flex items-center justify-center px-4 py-12 pb-28"
       style={{
         background:
           "linear-gradient(160deg, #f0fdfa 0%, #ecfeff 50%, #f0fdf4 100%)",
